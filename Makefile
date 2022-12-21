@@ -1,19 +1,21 @@
 #!/usr/bin/make -f
 DOCKER_BUILDKIT=1
 VERSION=$(shell git describe --tags | head -n1)
-DOCKER_VERSION ?= $(VERSION)
 DOCKER := $(shell which docker)
+COMMIT_HASH := $(shell git rev-parse --short=7 HEAD)
+DOCKER_TAG := $(COMMIT_HASH)
+
 
 
 build:
-	go build -o bin/evinced main.go
-
+	go build -o bin/evinced  -a
 build-docker:
-	DOCKER_BUILDKIT=1 $(DOCKER) build . -f Dockerfile -t quicksilverzone/evinced:$(DOCKER_VERSION)
+	DOCKER_BUILDKIT=1 $(DOCKER) build . -f Dockerfile -t quicksilverzone/evinced:$(DOCKER_TAG)
 
 run:
-	go run main.go
+	go run -a
 install:
-	go build -o /go/bin/evinced main.go
+	go build -o /go/bin/evinced -a
 
 all: build
+
