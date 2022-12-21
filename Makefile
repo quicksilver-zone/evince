@@ -10,7 +10,7 @@ DOCKER_TAG := $(COMMIT_HASH)
 build:
 	go build -o bin/evinced  -a
 build-docker:
-	DOCKER_BUILDKIT=1 $(DOCKER) build . -f Dockerfile -t quicksilverzone/evinced:$(DOCKER_TAG)
+	DOCKER_BUILDKIT=1 $(DOCKER) build . -f Dockerfile -t quicksilverzone/evince:$(DOCKER_TAG)
 
 run:
 	go run -a
