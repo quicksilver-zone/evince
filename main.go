@@ -15,7 +15,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var GitCommit string
+
 func main() {
+	fmt.Printf("Quicksilver (evince): %s\n", GitCommit)
+
 	// handle flags
 	var filename string
 	flag.StringVar(&filename, "f", "", "YAML file to parse.")
