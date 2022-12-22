@@ -18,7 +18,8 @@ import (
 
 func (s *Service) ConfigureRoutes() {
 	s.Echo.GET("/", func(ctx echo.Context) error {
-		return ctx.String(http.StatusOK, LogoStr)
+		output := fmt.Sprintf("Quicksilver (evince): %v\n%v", GitCommit, LogoStr)
+		return ctx.String(http.StatusOK, output)
 	})
 
 	s.Echo.GET("/validatorList/:chainId", func(ctx echo.Context) error {
