@@ -38,7 +38,7 @@ func main() {
 
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Skipper: func(c echo.Context) bool {
-			return strings.Contains(c.Path(), "metrics") // Change "metrics" for your own path
+			return strings.Contains(c.Path(), "metrics")
 		},
 	}))
 
