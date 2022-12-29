@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"gopkg.in/yaml.v2"
 )
@@ -33,6 +35,12 @@ func main() {
 
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
+
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Skipper: func(c echo.Context) bool {
+			return strings.Contains(c.Path(), "metrics")
+		},
+	}))
 
 	// YAML configuration
 	yamlfile, err := os.ReadFile(filename)
@@ -66,9 +74,9 @@ func main() {
 
 	// start server
 	go func() {
-    		// Enable metrics middleware
-    		p := prometheus.NewPrometheus("echo", nil)
-    		p.Use(e)
+		// Enable metrics middleware
+		p := prometheus.NewPrometheus("echo", nil)
+		p.Use(e)
 
 		if err := e.Start(":1323"); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatalf("%v: %v", ErrEchoFatal, err)
