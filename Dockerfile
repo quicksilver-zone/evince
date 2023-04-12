@@ -8,7 +8,7 @@ WORKDIR /go/src/github.com/ingenuity-build/evince
 
 # Add source files
 COPY .. .
-COPY .git .
+
 # Install minimum necessary dependencies, build binary and remove packages
 RUN apk add --no-cache $PACKAGES && make install
 

@@ -10,4 +10,5 @@ var (
 	ErrReadConfigFile      = errors.New("unable to read config file")
 	ErrParseConfigFile     = errors.New("unable to parse config file")
 	ErrEchoFatal           = errors.New("shutting down server")
+	ErrUnableToGetAPR      = errors.New("unable to get apr response")
 )

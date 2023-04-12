@@ -1,2 +1,8 @@
 quickhost: "https://rpc.test.quicksilver.zone:443"
 chainhost: "https://rpc.%s.test.quicksilver.zone:443"
+chains:
+  - "quicksilver"
+  - "cosmoshub"
+  - "stargaze"
+  - "osmosis"
+  - "regen"
