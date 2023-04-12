@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -57,6 +58,16 @@ func (s *Service) ConfigureRoutes() {
 			return s.getZones(ctx, key)
 		}
 
+		return ctx.JSONBlob(http.StatusOK, data.([]byte))
+	})
+
+	s.Echo.GET("/apr", func(ctx echo.Context) error {
+		key := "apr"
+
+		data, found := s.Cache.Get(key)
+		if !found {
+			return s.getAPR(ctx, key)
+		}
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
 }
@@ -222,6 +233,33 @@ func (s *Service) getZones(ctx echo.Context, key string) error {
 	}
 
 	s.Cache.SetWithTTL(key, respdata, 1, 1*time.Minute)
+
+	return ctx.JSONBlob(http.StatusOK, respdata)
+}
+
+func (s *Service) getAPR(ctx echo.Context, key string) error {
+	s.Echo.Logger.Infof("getAPR")
+	baseurl := "https://chains.cosmos.directory/"
+
+	chains := s.Config.Chains
+	aprResp := APRResponse{}
+	for _, chain := range chains {
+		chainAPR, err := getAPRquery(baseurl, chain)
+		if err != nil {
+			s.Echo.Logger.Errorf("getAPR: %v - %v", ErrUnableToGetAPR, err)
+			return ErrUnableToGetAPR
+		}
+
+		aprResp.Chains = append(aprResp.Chains, chainAPR)
+	}
+
+	respdata, err := json.Marshal(aprResp)
+	if err != nil {
+		s.Echo.Logger.Errorf("getAPR: %v - %v", ErrMarshalResponse, err)
+		return ErrMarshalResponse
+	}
+
+	s.Cache.SetWithTTL(key, respdata, 1, 15*time.Minute)
 
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
