@@ -54,6 +54,7 @@ type Service struct {
 type Config struct {
 	QuickHost string
 	ChainHost string
+	Chains    []string
 }
 
 func NewCacheService(e *echo.Echo, cache *ristretto.Cache, cfg Config) *Service {
