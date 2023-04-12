@@ -12,7 +12,7 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/labstack/echo-contrib/prometheus"
-	"github.com/labstack/echo/v4"
+	echov4 "github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"gopkg.in/yaml.v2"
@@ -33,11 +33,11 @@ func main() {
 		return
 	}
 
-	e := echo.New()
+	e := echov4.New()
 	e.Logger.SetLevel(log.INFO)
 
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echov4.Context) bool {
 			return strings.Contains(c.Path(), "metrics")
 		},
 	}))

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	echov4 "github.com/labstack/echo/v4"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -18,12 +18,12 @@ import (
 )
 
 func (s *Service) ConfigureRoutes() {
-	s.Echo.GET("/", func(ctx echo.Context) error {
+	s.Echo.GET("/", func(ctx echov4.Context) error {
 		output := fmt.Sprintf("Quicksilver (evince): %v\n%v", GitCommit, LogoStr)
 		return ctx.String(http.StatusOK, output)
 	})
 
-	s.Echo.GET("/validatorList/:chainId", func(ctx echo.Context) error {
+	s.Echo.GET("/validatorList/:chainId", func(ctx echov4.Context) error {
 		chainId := ctx.Param("chainId")
 
 		key := fmt.Sprintf("validatorList.%s", chainId)
@@ -36,7 +36,7 @@ func (s *Service) ConfigureRoutes() {
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
 
-	s.Echo.GET("/existingDelegations/:chainId/:address", func(c echo.Context) error {
+	s.Echo.GET("/existingDelegations/:chainId/:address", func(c echov4.Context) error {
 		chainId := c.Param("chainId")
 		address := c.Param("address")
 
@@ -50,7 +50,7 @@ func (s *Service) ConfigureRoutes() {
 		return c.JSONBlob(http.StatusOK, data.([]byte))
 	})
 
-	s.Echo.GET("/zones", func(ctx echo.Context) error {
+	s.Echo.GET("/zones", func(ctx echov4.Context) error {
 		key := "zones"
 
 		data, found := s.Cache.Get(key)
@@ -61,7 +61,7 @@ func (s *Service) ConfigureRoutes() {
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
 
-	s.Echo.GET("/apr", func(ctx echo.Context) error {
+	s.Echo.GET("/apr", func(ctx echov4.Context) error {
 		key := "apr"
 
 		data, found := s.Cache.Get(key)
@@ -72,7 +72,7 @@ func (s *Service) ConfigureRoutes() {
 	})
 }
 
-func (s *Service) getValidatorList(ctx echo.Context, key string, chainId string) error {
+func (s *Service) getValidatorList(ctx echov4.Context, key string, chainId string) error {
 	s.Echo.Logger.Infof("getValidatorList")
 
 	host := fmt.Sprintf(s.Config.ChainHost, chainId)
@@ -133,7 +133,7 @@ func (s *Service) getValidatorList(ctx echo.Context, key string, chainId string)
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
 
-func (s *Service) getExistingDelegations(ctx echo.Context, key string, chainId string, address string) error {
+func (s *Service) getExistingDelegations(ctx echov4.Context, key string, chainId string, address string) error {
 	s.Echo.Logger.Infof("getExistingDelegations")
 
 	host := fmt.Sprintf(s.Config.ChainHost, chainId)
@@ -187,7 +187,7 @@ func (s *Service) getExistingDelegations(ctx echo.Context, key string, chainId s
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
 
-func (s *Service) getZones(ctx echo.Context, key string) error {
+func (s *Service) getZones(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Infof("getZones")
 
 	// establish client connection
@@ -237,7 +237,7 @@ func (s *Service) getZones(ctx echo.Context, key string) error {
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
 
-func (s *Service) getAPR(ctx echo.Context, key string) error {
+func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Infof("getAPR")
 	baseurl := "https://chains.cosmos.directory/"
 
