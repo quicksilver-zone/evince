@@ -23,4 +23,3 @@ jobs:
         with:
           version: v1.48.0
           args: --timeout=3m
-          

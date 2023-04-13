@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
-	"github.com/labstack/echo/v4"
+	echov4 "github.com/labstack/echo/v4"
 
 	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 	libclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
@@ -47,16 +47,17 @@ const LogoStr = `
 type Service struct {
 	Config Config
 
-	*echo.Echo
+	*echov4.Echo
 	*ristretto.Cache
 }
 
 type Config struct {
 	QuickHost string
 	ChainHost string
+	Chains    []string
 }
 
-func NewCacheService(e *echo.Echo, cache *ristretto.Cache, cfg Config) *Service {
+func NewCacheService(e *echov4.Echo, cache *ristretto.Cache, cfg Config) *Service {
 	return &Service{
 		Config: cfg,
 		Echo:   e,
