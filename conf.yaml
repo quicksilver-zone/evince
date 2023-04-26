@@ -6,3 +6,7 @@ chains:
   - "stargaze"
   - "osmosis"
   - "regen"
+aprurl: "https://chains.cosmos.directory"
+aprcachetime: 15 #minutes
+lcdendpoint: "https://lcd.quicksilver.zone"
+supplycachetime: 3 #hours

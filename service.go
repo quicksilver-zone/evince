@@ -5,7 +5,6 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	echov4 "github.com/labstack/echo/v4"
-
 	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 	libclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
 )
@@ -52,9 +51,13 @@ type Service struct {
 }
 
 type Config struct {
-	QuickHost string
-	ChainHost string
-	Chains    []string
+	QuickHost       string
+	ChainHost       string
+	Chains          []string
+	APRURL          string
+	APRCacheTime    int
+	LCDEndpoint     string
+	SupplyCacheTime int
 }
 
 func NewCacheService(e *echov4.Echo, cache *ristretto.Cache, cfg Config) *Service {
