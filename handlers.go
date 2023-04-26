@@ -71,6 +71,16 @@ func (s *Service) ConfigureRoutes() {
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
 
+	s.Echo.GET("/total_supply", func(ctx echov4.Context) error {
+		key := "total_supply"
+
+		data, found := s.Cache.Get(key)
+		if !found {
+			return s.getTotalSupply(ctx, key)
+		}
+		return ctx.JSONBlob(http.StatusOK, data.([]byte))
+	})
+
 	s.Echo.GET("/circulating_supply", func(ctx echov4.Context) error {
 		key := "circulating_supply"
 
@@ -273,10 +283,29 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
 
+func (s *Service) getTotalSupply(ctx echov4.Context, key string) error {
+	s.Echo.Logger.Infof("getTotalSupply")
+
+	totalSupply, err := getTotalSupply(s.Config.LCDEndpoint + "/cosmos/bank/v1beta1/supply")
+	if err != nil {
+		s.Echo.Logger.Errorf("getTotalSupply: %v - %v", ErrUnableToGetTotalSupply, err)
+		return ErrUnableToGetTotalSupply
+	}
+	s.Echo.Logger.Info("totalSupply", " -> ", totalSupply)
+	respData, err := json.Marshal(float64(totalSupply.Int64()) / 1_000_000)
+	if err != nil {
+		s.Echo.Logger.Errorf("getTotalSupply: %v - %v", ErrMarshalResponse, err)
+		return ErrMarshalResponse
+	}
+	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Hour)
+
+	return ctx.JSONBlob(http.StatusOK, respData)
+}
+
 func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Infof("getCirculatingSupply")
 
-	circulatingSupply := CirculatingSupplyResponse{}
+	var CirculatingSupplyResponse int64
 
 	totalLockedTokens := sdkmath.ZeroInt()
 
@@ -306,9 +335,9 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Info("communityPoolBalance", " -> ", communityPoolBalance)
 
 	totalCirculatingSupply := totalSupply.Sub(totalLockedTokens).Sub(communityPoolBalance).Sub(sdkmath.NewInt(500_000_000_000)) // unknown account
-	circulatingSupply.Supply = totalCirculatingSupply.Int64()
+	CirculatingSupplyResponse = totalCirculatingSupply.Int64()
 
-	respData, err := json.Marshal(circulatingSupply)
+	respData, err := json.Marshal(float64(CirculatingSupplyResponse) / 1_000_000)
 	if err != nil {
 		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse

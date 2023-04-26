@@ -14,10 +14,6 @@ import (
 // bondDenom uqck
 /* delemap*/
 
-type CirculatingSupplyResponse struct {
-	Supply int64 `json:"supply"`
-}
-
 type Supply struct {
 	Supply sdktypes.Coins `json:"supply"`
 }
