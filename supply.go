@@ -52,12 +52,6 @@ type VestingPeriods struct {
 	Length string         `json:"length"`
 	Amount sdktypes.Coins `json:"amount"`
 }
-type PeriodicVestingAccount struct {
-	Address   string
-	StartTime time.Time
-	EndTime   time.Time
-	Tokens    sdktypes.Coins
-}
 
 func getVestingAccountLocked(baseurl, address string) (sdkmath.Int, error) {
 	url := baseurl + address
