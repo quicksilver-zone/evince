@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	echov4 "github.com/labstack/echo/v4"
-
+	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	icstypes "github.com/ingenuity-build/quicksilver/x/interchainstaking/types"
+	echov4 "github.com/labstack/echo/v4"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 )
 
@@ -67,6 +67,16 @@ func (s *Service) ConfigureRoutes() {
 		data, found := s.Cache.Get(key)
 		if !found {
 			return s.getAPR(ctx, key)
+		}
+		return ctx.JSONBlob(http.StatusOK, data.([]byte))
+	})
+
+	s.Echo.GET("/circulating_supply", func(ctx echov4.Context) error {
+		key := "circulating_supply"
+
+		data, found := s.Cache.Get(key)
+		if !found {
+			return s.getCirculatingSupply(ctx, key)
 		}
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
@@ -239,12 +249,11 @@ func (s *Service) getZones(ctx echov4.Context, key string) error {
 
 func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Infof("getAPR")
-	baseurl := "https://chains.cosmos.directory/"
 
 	chains := s.Config.Chains
 	aprResp := APRResponse{}
 	for _, chain := range chains {
-		chainAPR, err := getAPRquery(baseurl, chain)
+		chainAPR, err := getAPRquery(s.Config.APRURL+"/", chain)
 		if err != nil {
 			s.Echo.Logger.Errorf("getAPR: %v - %v", ErrUnableToGetAPR, err)
 			return ErrUnableToGetAPR
@@ -259,7 +268,53 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 		return ErrMarshalResponse
 	}
 
-	s.Cache.SetWithTTL(key, respdata, 1, 15*time.Minute)
+	s.Cache.SetWithTTL(key, respdata, 1, time.Duration(s.Config.APRCacheTime)*time.Minute)
 
 	return ctx.JSONBlob(http.StatusOK, respdata)
+}
+
+func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
+	s.Echo.Logger.Infof("getCirculatingSupply")
+
+	circulatingSupply := CirculatingSupplyResponse{}
+
+	totalLockedTokens := sdkmath.ZeroInt()
+
+	for _, address := range VESTING_ACCOUNTS {
+		lockedTokensForAddress, err := getVestingAccountLocked(s.Config.LCDEndpoint+"/cosmos/auth/v1beta1/accounts/", address)
+		if err != nil {
+			s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetLockedTokens, err)
+			return ErrUnableToGetLockedTokens
+		}
+		totalLockedTokens = totalLockedTokens.Add(lockedTokensForAddress)
+		s.Echo.Logger.Info("lockedTokensFor", address, " -> ", lockedTokensForAddress)
+	}
+
+	totalSupply, err := getTotalSupply(s.Config.LCDEndpoint + "/cosmos/bank/v1beta1/supply")
+	if err != nil {
+		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetTotalSupply, err)
+		return ErrUnableToGetTotalSupply
+	}
+	s.Echo.Logger.Info("totalSupply", " -> ", totalSupply)
+
+	communityPoolBalance, err := getCommunityPool(s.Config.LCDEndpoint + "/cosmos/distribution/v1beta1/community_pool")
+	if err != nil {
+		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetCommunityPool, err)
+		return ErrUnableToGetCommunityPool
+	}
+
+	s.Echo.Logger.Info("communityPoolBalance", " -> ", communityPoolBalance)
+
+	totalCirculatingSupply := totalSupply.Sub(totalLockedTokens).Sub(communityPoolBalance).Sub(sdkmath.NewInt(500_000_000_000)) // unknown account
+	circulatingSupply.Supply = totalCirculatingSupply.Int64()
+
+	respData, err := json.Marshal(circulatingSupply)
+	if err != nil {
+		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrMarshalResponse, err)
+		return ErrMarshalResponse
+	}
+	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Hour)
+
+	return ctx.JSONBlob(http.StatusOK, respData)
+
 }
