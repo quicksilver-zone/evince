@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -78,7 +79,7 @@ func main() {
 		p := prometheus.NewPrometheus("echo", nil)
 		p.Use(e)
 
-		if err := e.Start(":1323"); err != nil && err != http.ErrServerClosed {
+		if err := e.Start(":1323"); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			e.Logger.Fatalf("%v: %v", ErrEchoFatal, err)
 		}
 	}()

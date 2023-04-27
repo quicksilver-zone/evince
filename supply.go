@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -49,12 +50,20 @@ type VestingPeriods struct {
 	Amount sdktypes.Coins `json:"amount"`
 }
 
-func getVestingAccountLocked(baseurl, address string) (sdkmath.Int, error) {
+func getVestingAccountLocked(ctx context.Context, baseurl, address string) (sdkmath.Int, error) {
 	url := baseurl + address
-	resp, err := http.Get(url)
+
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return sdkmath.Int{}, err
 	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return sdkmath.Int{}, err
+	}
+
+	defer resp.Body.Close()
 
 	var result map[string]json.RawMessage
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -80,7 +89,7 @@ func getVestingAccountLocked(baseurl, address string) (sdkmath.Int, error) {
 			if (startTime + period) < time.Now().Unix() {
 				lockedTokens = lockedTokens.Sub(vestPeriod.Amount.AmountOf("uqck"))
 			}
-			startTime = startTime + period
+			startTime += period
 
 		}
 
@@ -89,11 +98,18 @@ func getVestingAccountLocked(baseurl, address string) (sdkmath.Int, error) {
 	return sdkmath.ZeroInt(), nil
 }
 
-func getTotalSupply(url string) (sdkmath.Int, error) {
-	resp, err := http.Get(url)
+func getTotalSupply(ctx context.Context, url string) (sdkmath.Int, error) {
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return sdkmath.Int{}, err
 	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return sdkmath.Int{}, err
+	}
+
+	defer resp.Body.Close()
 
 	var result json.RawMessage
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -110,11 +126,18 @@ func getTotalSupply(url string) (sdkmath.Int, error) {
 	return supply.Supply.AmountOf("uqck"), nil
 }
 
-func getCommunityPool(url string) (sdkmath.Int, error) {
-	resp, err := http.Get(url)
+func getCommunityPool(ctx context.Context, url string) (sdkmath.Int, error) {
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return sdkmath.Int{}, err
 	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return sdkmath.Int{}, err
+	}
+
+	defer resp.Body.Close()
 
 	var result json.RawMessage
 	err = json.NewDecoder(resp.Body).Decode(&result)

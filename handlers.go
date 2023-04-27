@@ -24,27 +24,27 @@ func (s *Service) ConfigureRoutes() {
 	})
 
 	s.Echo.GET("/validatorList/:chainId", func(ctx echov4.Context) error {
-		chainId := ctx.Param("chainId")
+		chainID := ctx.Param("chainId")
 
-		key := fmt.Sprintf("validatorList.%s", chainId)
+		key := fmt.Sprintf("validatorList.%s", chainID)
 
 		data, found := s.Cache.Get(key)
 		if !found {
-			return s.getValidatorList(ctx, key, chainId)
+			return s.getValidatorList(ctx, key, chainID)
 		}
 
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
 
 	s.Echo.GET("/existingDelegations/:chainId/:address", func(c echov4.Context) error {
-		chainId := c.Param("chainId")
+		chainID := c.Param("chainId")
 		address := c.Param("address")
 
-		key := fmt.Sprintf("existingDelegations.%s.%s", chainId, address)
+		key := fmt.Sprintf("existingDelegations.%s.%s", chainID, address)
 
 		data, found := s.Cache.Get(key)
 		if !found {
-			return s.getExistingDelegations(c, key, chainId, address)
+			return s.getExistingDelegations(c, key, chainID, address)
 		}
 
 		return c.JSONBlob(http.StatusOK, data.([]byte))
@@ -92,10 +92,10 @@ func (s *Service) ConfigureRoutes() {
 	})
 }
 
-func (s *Service) getValidatorList(ctx echov4.Context, key string, chainId string) error {
+func (s *Service) getValidatorList(ctx echov4.Context, key, chainID string) error {
 	s.Echo.Logger.Infof("getValidatorList")
 
-	host := fmt.Sprintf(s.Config.ChainHost, chainId)
+	host := fmt.Sprintf(s.Config.ChainHost, chainID)
 
 	// establish client connection
 	client, err := NewRPCClient(host, 30*time.Second)
@@ -123,7 +123,7 @@ func (s *Service) getValidatorList(ctx echov4.Context, key string, chainId strin
 		qBytes := marshaler.MustMarshal(&vQuery)
 
 		// execute query
-		abciquery, err := client.ABCIQueryWithOptions(
+		abciQuery, err := client.ABCIQueryWithOptions(
 			context.Background(),
 			"/cosmos.staking.v1beta1.Query/Validators",
 			qBytes,
@@ -135,28 +135,28 @@ func (s *Service) getValidatorList(ctx echov4.Context, key string, chainId strin
 		}
 
 		// decode query response
-		if err := marshaler.Unmarshal(abciquery.Response.Value, &queryResponse); err != nil {
+		if err := marshaler.Unmarshal(abciQuery.Response.Value, &queryResponse); err != nil {
 			s.Echo.Logger.Errorf("getValidatorList: %v - %v", ErrUnmarshalResponse, err)
 			return ErrUnmarshalResponse
 		}
 	}
 
 	// encode response & cache
-	respdata, err := codec.ProtoMarshalJSON(&queryResponse, nil)
+	respData, err := codec.ProtoMarshalJSON(&queryResponse, nil)
 	if err != nil {
 		s.Echo.Logger.Errorf("getValidatorList: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse
 	}
 
-	s.Cache.SetWithTTL(key, respdata, 1, 1*time.Hour)
+	s.Cache.SetWithTTL(key, respData, 1, 1*time.Hour)
 
-	return ctx.JSONBlob(http.StatusOK, respdata)
+	return ctx.JSONBlob(http.StatusOK, respData)
 }
 
-func (s *Service) getExistingDelegations(ctx echov4.Context, key string, chainId string, address string) error {
+func (s *Service) getExistingDelegations(ctx echov4.Context, key, chainID, address string) error {
 	s.Echo.Logger.Infof("getExistingDelegations")
 
-	host := fmt.Sprintf(s.Config.ChainHost, chainId)
+	host := fmt.Sprintf(s.Config.ChainHost, chainID)
 
 	// establish client connection
 	client, err := NewRPCClient(host, 30*time.Second)
@@ -171,13 +171,13 @@ func (s *Service) getExistingDelegations(ctx echov4.Context, key string, chainId
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
 	// prepare query
-	query := stakingtypes.QueryDelegatorDelegationsRequest{
+	queryRequest := stakingtypes.QueryDelegatorDelegationsRequest{
 		DelegatorAddr: address,
 	}
-	qBytes := marshaler.MustMarshal(&query)
+	qBytes := marshaler.MustMarshal(&queryRequest)
 
 	// execute query
-	abciquery, err := client.ABCIQueryWithOptions(
+	abciQuery, err := client.ABCIQueryWithOptions(
 		context.Background(),
 		"/cosmos.staking.v1beta1.Query/DelegatorDelegations",
 		qBytes,
@@ -190,21 +190,21 @@ func (s *Service) getExistingDelegations(ctx echov4.Context, key string, chainId
 
 	// decode query response
 	queryResponse := stakingtypes.QueryDelegatorDelegationsResponse{}
-	if err := marshaler.Unmarshal(abciquery.Response.Value, &queryResponse); err != nil {
+	if err := marshaler.Unmarshal(abciQuery.Response.Value, &queryResponse); err != nil {
 		s.Echo.Logger.Errorf("getExistingDelegations: %v - %v", ErrUnmarshalResponse, err)
 		return ErrUnmarshalResponse
 	}
 
 	// encode response & cache
-	respdata, err := marshaler.MarshalJSON(&queryResponse)
+	respData, err := marshaler.MarshalJSON(&queryResponse)
 	if err != nil {
 		s.Echo.Logger.Errorf("getExistingDelegations: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse
 	}
 
-	s.Cache.SetWithTTL(key, respdata, 1, 2*time.Minute)
+	s.Cache.SetWithTTL(key, respData, 1, 2*time.Minute)
 
-	return ctx.JSONBlob(http.StatusOK, respdata)
+	return ctx.JSONBlob(http.StatusOK, respData)
 }
 
 func (s *Service) getZones(ctx echov4.Context, key string) error {
@@ -223,11 +223,11 @@ func (s *Service) getZones(ctx echov4.Context, key string) error {
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
 	// prepare query
-	query := icstypes.QueryZonesInfoRequest{}
-	qBytes := marshaler.MustMarshal(&query)
+	queryRequest := icstypes.QueryZonesInfoRequest{}
+	qBytes := marshaler.MustMarshal(&queryRequest)
 
 	// execute query
-	abciquery, err := client.ABCIQueryWithOptions(
+	abciQuery, err := client.ABCIQueryWithOptions(
 		context.Background(),
 		"/quicksilver.interchainstaking.v1.Query/ZoneInfos",
 		qBytes,
@@ -240,21 +240,21 @@ func (s *Service) getZones(ctx echov4.Context, key string) error {
 
 	// decode query response
 	queryResponse := icstypes.QueryZonesInfoResponse{}
-	if err := marshaler.Unmarshal(abciquery.Response.Value, &queryResponse); err != nil {
+	if err := marshaler.Unmarshal(abciQuery.Response.Value, &queryResponse); err != nil {
 		s.Echo.Logger.Errorf("getZones: %v - %v", ErrUnmarshalResponse, err)
 		return ErrUnmarshalResponse
 	}
 
 	// encode response & cache
-	respdata, err := marshaler.MarshalJSON(&queryResponse)
+	respData, err := marshaler.MarshalJSON(&queryResponse)
 	if err != nil {
 		s.Echo.Logger.Errorf("getZones: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse
 	}
 
-	s.Cache.SetWithTTL(key, respdata, 1, 1*time.Minute)
+	s.Cache.SetWithTTL(key, respData, 1, 1*time.Minute)
 
-	return ctx.JSONBlob(http.StatusOK, respdata)
+	return ctx.JSONBlob(http.StatusOK, respData)
 }
 
 func (s *Service) getAPR(ctx echov4.Context, key string) error {
@@ -263,7 +263,7 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	chains := s.Config.Chains
 	aprResp := APRResponse{}
 	for _, chain := range chains {
-		chainAPR, err := getAPRquery(s.Config.APRURL+"/", chain)
+		chainAPR, err := getAPRquery(context.Background(), s.Config.APRURL+"/", chain)
 		if err != nil {
 			s.Echo.Logger.Errorf("getAPR: %v - %v", ErrUnableToGetAPR, err)
 			return ErrUnableToGetAPR
@@ -272,21 +272,21 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 		aprResp.Chains = append(aprResp.Chains, chainAPR)
 	}
 
-	respdata, err := json.Marshal(aprResp)
+	respData, err := json.Marshal(aprResp)
 	if err != nil {
 		s.Echo.Logger.Errorf("getAPR: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse
 	}
 
-	s.Cache.SetWithTTL(key, respdata, 1, time.Duration(s.Config.APRCacheTime)*time.Minute)
+	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.APRCacheTime)*time.Minute)
 
-	return ctx.JSONBlob(http.StatusOK, respdata)
+	return ctx.JSONBlob(http.StatusOK, respData)
 }
 
 func (s *Service) getTotalSupply(ctx echov4.Context, key string) error {
 	s.Echo.Logger.Infof("getTotalSupply")
 
-	totalSupply, err := getTotalSupply(s.Config.LCDEndpoint + "/cosmos/bank/v1beta1/supply")
+	totalSupply, err := getTotalSupply(context.Background(), s.Config.LCDEndpoint+"/cosmos/bank/v1beta1/supply")
 	if err != nil {
 		s.Echo.Logger.Errorf("getTotalSupply: %v - %v", ErrUnableToGetTotalSupply, err)
 		return ErrUnableToGetTotalSupply
@@ -309,8 +309,8 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 
 	totalLockedTokens := sdkmath.ZeroInt()
 
-	for _, address := range VESTING_ACCOUNTS {
-		lockedTokensForAddress, err := getVestingAccountLocked(s.Config.LCDEndpoint+"/cosmos/auth/v1beta1/accounts/", address)
+	for _, address := range VestingAccounts {
+		lockedTokensForAddress, err := getVestingAccountLocked(context.Background(), s.Config.LCDEndpoint+"/cosmos/auth/v1beta1/accounts/", address)
 		if err != nil {
 			s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetLockedTokens, err)
 			return ErrUnableToGetLockedTokens
@@ -319,14 +319,14 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 		s.Echo.Logger.Info("lockedTokensFor", address, " -> ", lockedTokensForAddress)
 	}
 
-	totalSupply, err := getTotalSupply(s.Config.LCDEndpoint + "/cosmos/bank/v1beta1/supply")
+	totalSupply, err := getTotalSupply(context.Background(), s.Config.LCDEndpoint+"/cosmos/bank/v1beta1/supply")
 	if err != nil {
 		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetTotalSupply, err)
 		return ErrUnableToGetTotalSupply
 	}
 	s.Echo.Logger.Info("totalSupply", " -> ", totalSupply)
 
-	communityPoolBalance, err := getCommunityPool(s.Config.LCDEndpoint + "/cosmos/distribution/v1beta1/community_pool")
+	communityPoolBalance, err := getCommunityPool(context.Background(), s.Config.LCDEndpoint+"/cosmos/distribution/v1beta1/community_pool")
 	if err != nil {
 		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetCommunityPool, err)
 		return ErrUnableToGetCommunityPool
