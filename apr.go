@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -24,9 +25,15 @@ type ChainAPR struct {
 	APR     float64 `json:"apr"`
 }
 
-func getAPRquery(baseurl string, chainname string) (ChainAPR, error) {
-	url := baseurl + chainname
-	resp, err := http.Get(url)
+func getAPRquery(ctx context.Context, baseurl, chainName string) (ChainAPR, error) {
+	url := baseurl + chainName
+
+	client := &http.Client{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return ChainAPR{}, err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return ChainAPR{}, err
 	}
@@ -45,11 +52,10 @@ func getAPRquery(baseurl string, chainname string) (ChainAPR, error) {
 		return ChainAPR{}, err
 	}
 
-	if chainname != "quicksilver" {
-		feeadjustedAPR := (chain.Params.EstimatedApr) * (0.965)
-		compoundedAPR := math.Pow(1+feeadjustedAPR/121.66, 121.66) - 1
+	if chainName != "quicksilver" {
+		feeAdjustedAPR := (chain.Params.EstimatedApr) * (0.965)
+		compoundedAPR := math.Pow(1+feeAdjustedAPR/121.66, 121.66) - 1
 		return ChainAPR{ChainID: chain.ChainID, APR: compoundedAPR}, nil
 	}
 	return ChainAPR{ChainID: chain.ChainID, APR: chain.Params.EstimatedApr}, nil
-
 }

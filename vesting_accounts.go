@@ -1,6 +1,6 @@
 package main
 
-var VESTING_ACCOUNTS = [...]string{
+var VestingAccounts = [...]string{
 	"quick1d04jsq0kw4797kk4vp53y7hgmy8zdn8x7es279",
 	"quick1etqtc49wywy9ptx2gplhj0nrw5hy48hzzc6n20",
 	"quick1hdl587g7urer06myjkua86gc63vmq6pcr4d9hl",
