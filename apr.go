@@ -51,5 +51,4 @@ func getAPRquery(baseurl string, chainname string) (ChainAPR, error) {
 		return ChainAPR{ChainID: chain.ChainID, APR: compoundedAPR}, nil
 	}
 	return ChainAPR{ChainID: chain.ChainID, APR: chain.Params.EstimatedApr}, nil
-
 }

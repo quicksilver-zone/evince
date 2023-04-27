@@ -108,7 +108,6 @@ func getTotalSupply(url string) (sdkmath.Int, error) {
 	}
 
 	return supply.Supply.AmountOf("uqck"), nil
-
 }
 
 func getCommunityPool(url string) (sdkmath.Int, error) {
@@ -130,5 +129,4 @@ func getCommunityPool(url string) (sdkmath.Int, error) {
 	}
 
 	return comPool.Pool.AmountOf("uqck").RoundInt(), nil
-
 }

@@ -345,5 +345,4 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Hour)
 
 	return ctx.JSONBlob(http.StatusOK, respData)
-
 }
