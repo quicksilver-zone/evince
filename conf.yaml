@@ -1,13 +1,65 @@
-quickhost: "https://rpc.test.quicksilver.zone:443"
-chainhost: "https://rpc.%s.test.quicksilver.zone:443"
+lcd_endpoint: "https://lcd.quicksilver.zone"
+rpc_endpoint: "https://rpc.test.quicksilver.zone:443"
+chain_rpc_endpoint: "https://rpc.%s.test.quicksilver.zone:443"
 chains:
-  - "quicksilver"
-  - "cosmoshub"
-  - "stargaze"
-  - "osmosis"
-  - "regen"
-  - "sommelier"
-aprurl: "https://chains.cosmos.directory"
-aprcachetime: 15 #minutes
-lcdendpoint: "https://lcd.quicksilver.zone"
-supplycachetime: 3 #hours
+  - quicksilver
+  - cosmoshub
+  - stargaze
+  - osmosis
+  - regen
+  - sommelier
+  - juno
+  - composable
+apr_url: "https://chains.cosmos.directory"
+apr_cache_minutes: 15
+supply_cache_minutes: 180
+defi_apis:
+  shade: https://na36v10ce3.execute-api.us-east-1.amazonaws.com/API-mainnet-STAGE/shadeswap/pairs
+  osmosis: https://app.osmosis.zone/api/pools?page=1&limit=500&min_liquidity=500
+  osmosis_apy: https://public-osmosis-api.numia.xyz/pools_apr
+  ux: https://testnet-client-bff-ocstrhuppq-uc.a.run.app/markets
+defi:
+  - assetPair: qATOM/ATOM
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/944
+    id: 944
+  - assetPair: qSTARS/STARS
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/903
+    id: 903
+  - assetPair: qREGEN/REGEN
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/948
+    id: 948
+  - assetPair: qOSMO/OSMO
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/956
+    id: 956
+  - assetPair: qSOMM/SOMM
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/1087
+    id: 1087
+  - assetPair: qATOM
+    provider: ux
+    action: Lend
+    link: https://app.ux.xyz/markets?base_denom=ibc%2F454725EA4029BAA99C293904336DE9A4B84E2BF7D83B9C56EE6B03E8A65FB5A1
+    id: QATOM
+  - assetPair: qATOM/SILK
+    provider: shade
+    action: Add Liquidity
+    apy: 0.459
+    tvl: 100400
+    link: https://app.shadeprotocol.io/swap/pools
+    id: 17dddb72-5719-4328-a3a7-1c84b4f7a932
+  - assetPair: qATOM/ATOM
+    provider: shade
+    action: Add Liquidity
+    apy: 0.121
+    tvl: 75760
+    link: https://app.shadeprotocol.io/swap/pools
+    id: 44c1658d-8626-4bf9-835f-d13aefec4c09
