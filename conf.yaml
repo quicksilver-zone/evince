@@ -1,6 +1,6 @@
 lcd_endpoint: "https://lcd.quicksilver.zone"
-rpc_endpoint: "https://rpc.test.quicksilver.zone:443"
-chain_rpc_endpoint: "https://rpc.%s.test.quicksilver.zone:443"
+rpc_endpoint: "https://rpc.quicksilver.zone:443"
+chain_rpc_endpoint: "https://rpc.%s.quicksilver.zone:443"
 chains:
   - quicksilver
   - cosmoshub
@@ -10,6 +10,8 @@ chains:
   - sommelier
   - juno
   - composable
+  - dydx
+  - saga
 apr_url: "https://chains.cosmos.directory"
 apr_cache_minutes: 15
 supply_cache_minutes: 180

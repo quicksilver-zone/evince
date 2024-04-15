@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	sdkmath "cosmossdk.io/math"
@@ -324,15 +325,23 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 
 	chains := s.Config.Chains
 	aprResp := APRResponse{}
-	for _, chain := range chains {
-		chainAPR, err := getAPRquery(s.Config.APRURL+"/", chain)
-		if err != nil {
-			s.Echo.Logger.Errorf("getAPR: %v - %v", ErrUnableToGetAPR, err)
-			return ErrUnableToGetAPR
-		}
 
-		aprResp.Chains = append(aprResp.Chains, chainAPR)
+	// WaitGroup to synchronize goroutines
+	var wg sync.WaitGroup
+	wg.Add(len(s.Config.Chains))
+
+	for _, chain := range chains {
+		go func(chainname string) {
+			defer wg.Done()
+			chainAPR, err := getAPRquery(s.Config, chainname)
+			if err != nil {
+				s.Echo.Logger.Errorf("unable to retrieve apy for %s: %s", chainname, err.Error())
+			}
+			aprResp.Chains = append(aprResp.Chains, chainAPR)
+		}(chain)
 	}
+	// Wait for goroutines to complete
+	wg.Wait()
 
 	respdata, err := json.Marshal(aprResp)
 	if err != nil {

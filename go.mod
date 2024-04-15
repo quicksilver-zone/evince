@@ -3,8 +3,10 @@ module github.com/ingenuity-build/evince
 go 1.19
 
 require (
+	cosmossdk.io/math v1.0.0-beta.4
 	github.com/cosmos/cosmos-sdk v0.46.12
 	github.com/dgraph-io/ristretto v0.1.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/ingenuity-build/quicksilver v1.2.9-hotfix.0
 	github.com/labstack/echo-contrib v0.13.0
 	github.com/labstack/echo/v4 v4.10.0
@@ -15,7 +17,6 @@ require (
 
 require (
 	cosmossdk.io/errors v1.0.0-beta.7 // indirect
-	cosmossdk.io/math v1.0.0-beta.4 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/99designs/keyring v1.2.1 // indirect
@@ -39,7 +40,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dgraph-io/badger/v3 v3.2103.2 // indirect
-	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
