@@ -34,7 +34,7 @@ func main() {
 	}
 
 	e := echov4.New()
-	e.Logger.SetLevel(log.INFO)
+	e.Logger.SetLevel(log.DEBUG)
 
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Skipper: func(c echov4.Context) bool {
