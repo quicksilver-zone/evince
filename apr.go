@@ -61,7 +61,7 @@ func BasicApr(cache *ristretto.Cache, client *http.Client, cfg Config, chainName
 	url := fmt.Sprintf("%s/%s", cfg.APRURL, chainName)
 	var result map[string]json.RawMessage
 
-	cachedResult, ok := cache.Get("aprbasic")
+	cachedResult, ok := cache.Get("aprbasic/" + chainName)
 
 	if !ok {
 		resp, err := client.Get(url)
@@ -75,7 +75,7 @@ func BasicApr(cache *ristretto.Cache, client *http.Client, cfg Config, chainName
 		if err != nil {
 			return "", 0, err
 		}
-		cache.SetWithTTL("aprbasic", result, 1, time.Duration(3)*time.Hour)
+		cache.SetWithTTL("aprbasic/"+chainName, result, 1, time.Duration(3)*time.Hour)
 	} else {
 		result = cachedResult.(map[string]json.RawMessage)
 	}
