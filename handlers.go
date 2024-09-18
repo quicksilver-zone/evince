@@ -333,7 +333,7 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	for _, chain := range chains {
 		go func(chainname string) {
 			defer wg.Done()
-			chainAPR, err := getAPRquery(s.Config, chainname)
+			chainAPR, err := getAPRquery(s.Cache, s.Config, chainname)
 			if err != nil {
 				s.Echo.Logger.Errorf("unable to retrieve apy for %s: %s", chainname, err.Error())
 			}

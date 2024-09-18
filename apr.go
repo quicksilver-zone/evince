@@ -6,8 +6,10 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
+	"github.com/dgraph-io/ristretto"
 )
 
 type Chain struct {
@@ -28,19 +30,20 @@ type ChainAPR struct {
 	APR     float64 `json:"apr"`
 }
 
-func getAPRquery(cfg Config, chainName string) (ChainAPR, error) {
-
+func getAPRquery(cache *ristretto.Cache, cfg Config, chainName string) (ChainAPR, error) {
 	var apr float64
 	var chainID string
 	var err error
 
+	client := &http.Client{Timeout: time.Duration(3) * time.Second}
+
 	switch chainName {
 	case "sommelier":
-		chainID, apr, err = SommelierApr(cfg, chainName)
+		chainID, apr, err = SommelierApr(client, cfg, chainName)
 	case "stargaze":
-		chainID, apr, err = StargazeApr(cfg, chainName)
+		chainID, apr, err = StargazeApr(client, cfg, chainName)
 	default:
-		chainID, apr, err = BasicApr(cfg, chainName)
+		chainID, apr, err = BasicApr(cache, client, cfg, chainName)
 	}
 	if err != nil {
 		return ChainAPR{}, err
@@ -54,24 +57,30 @@ func getAPRquery(cfg Config, chainName string) (ChainAPR, error) {
 	return ChainAPR{ChainID: chainID, APR: apr}, nil
 }
 
-func BasicApr(cfg Config, chainName string) (string, float64, error) {
+func BasicApr(cache *ristretto.Cache, client *http.Client, cfg Config, chainName string) (string, float64, error) {
 	url := fmt.Sprintf("%s/%s", cfg.APRURL, chainName)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", 0, err
-	}
-
-	defer resp.Body.Close()
-
 	var result map[string]json.RawMessage
-	var chain Chain
 
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		return "", 0, err
+	cachedResult, ok := cache.Get("aprbasic")
+
+	if !ok {
+		resp, err := client.Get(url)
+		if err != nil {
+			return "", 0, err
+		}
+
+		defer resp.Body.Close()
+
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			return "", 0, err
+		}
+		cache.SetWithTTL("aprbasic", result, 1, time.Duration(3)*time.Hour)
+	} else {
+		result = cachedResult.(map[string]json.RawMessage)
 	}
-	err = json.Unmarshal(result["chain"], &chain)
+	var chain Chain
+	err := json.Unmarshal(result["chain"], &chain)
 	if err != nil {
 		return "", 0, err
 	}
@@ -79,11 +88,11 @@ func BasicApr(cfg Config, chainName string) (string, float64, error) {
 	return chain.ChainID, chain.Params.EstimatedApr, nil
 }
 
-func StargazeApr(cfg Config, chainname string) (string, float64, error) {
+func StargazeApr(client *http.Client, cfg Config, chainname string) (string, float64, error) {
 	provisionsUrl := "https://stargaze-1.lcd.quicksilver.zone/stargaze/mint/v1beta1/annual_provisions"
 	bondedUrl := "https://stargaze-1.lcd.quicksilver.zone/cosmos/staking/v1beta1/pool"
 
-	provisionQuery, err := http.Get(provisionsUrl)
+	provisionQuery, err := client.Get(provisionsUrl)
 	if err != nil {
 		return "", 0, err
 	}
@@ -106,7 +115,7 @@ func StargazeApr(cfg Config, chainname string) (string, float64, error) {
 		return "", 0, err
 	}
 
-	bondedQuery, err := http.Get(bondedUrl)
+	bondedQuery, err := client.Get(bondedUrl)
 	if err != nil {
 		return "", 0, err
 	}
@@ -129,9 +138,9 @@ func StargazeApr(cfg Config, chainname string) (string, float64, error) {
 	return "stargaze-1", provisions / bonded, nil
 }
 
-func SommelierApr(cfg Config, chainname string) (string, float64, error) {
+func SommelierApr(client *http.Client, cfg Config, chainname string) (string, float64, error) {
 	url := "https://sommelier-3.lcd.quicksilver.zone/sommelier/incentives/v1/apy"
-	query, err := http.Get(url)
+	query, err := client.Get(url)
 	if err != nil {
 		return "", 0, err
 	}
