@@ -80,8 +80,8 @@ func BasicApr(cfg Config, chainName string) (string, float64, error) {
 }
 
 func StargazeApr(cfg Config, chainname string) (string, float64, error) {
-	provisionsUrl := "https://lcd.stargaze-1.quicksilver.zone/stargaze/mint/v1beta1/annual_provisions"
-	bondedUrl := "https://lcd.stargaze-1.quicksilver.zone/cosmos/staking/v1beta1/pool"
+	provisionsUrl := "https://stargaze-1.lcd.quicksilver.zone/stargaze/mint/v1beta1/annual_provisions"
+	bondedUrl := "https://stargaze-1.lcd.quicksilver.zone/cosmos/staking/v1beta1/pool"
 
 	provisionQuery, err := http.Get(provisionsUrl)
 	if err != nil {
@@ -130,7 +130,7 @@ func StargazeApr(cfg Config, chainname string) (string, float64, error) {
 }
 
 func SommelierApr(cfg Config, chainname string) (string, float64, error) {
-	url := "https://lcd.sommelier-3.quicksilver.zone/sommelier/incentives/v1/apy"
+	url := "https://sommelier-3.lcd.quicksilver.zone/sommelier/incentives/v1/apy"
 	query, err := http.Get(url)
 	if err != nil {
 		return "", 0, err

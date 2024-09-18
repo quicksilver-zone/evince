@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine AS build-env
+FROM golang:1.22-alpine3.20 AS build-env
 
 # Set up dependencies
 ENV PACKAGES curl make git libc-dev bash gcc linux-headers eudev-dev python3  ca-certificates build-base
@@ -13,7 +13,7 @@ COPY .. .
 RUN apk add --no-cache $PACKAGES && make install
 
 # Final image
-FROM alpine:edge
+FROM alpine:3.20
 
 # Install ca-certificates
 RUN apk add --update ca-certificates jq bash curl
