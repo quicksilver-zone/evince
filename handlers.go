@@ -5,8 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"image/png"
+	"io"
+	"log"
 	"math"
+	"math/big"
 	"net/http"
 	"strconv"
 	"sync"
@@ -17,6 +21,7 @@ import (
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/dustin/go-humanize"
 	icstypes "github.com/ingenuity-build/quicksilver/x/interchainstaking/types"
 	echov4 "github.com/labstack/echo/v4"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -96,6 +101,14 @@ func (s *Service) ConfigureRoutes() {
 			return s.getCirculatingSupply(ctx, key)
 		}
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
+	})
+
+	s.Echo.GET("/top100/json", func(ctx echov4.Context) error {
+		return s.getTopAccounts(ctx, false)
+	})
+
+	s.Echo.GET("/top100", func(ctx echov4.Context) error {
+		return s.getTopAccounts(ctx, true)
 	})
 
 	s.Echo.GET("/defi", func(ctx echov4.Context) error {
@@ -389,6 +402,57 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Minute)
 
 	return ctx.JSONBlob(http.StatusOK, respData)
+}
+
+func (s *Service) getTopAccounts(ctx echov4.Context, pretty bool) error {
+	key := "top100"
+	var result []byte
+	data, found := s.Cache.Get(key)
+	if found {
+		result = data.([]byte)
+	} else {
+		resp, err := http.Get(s.Config.SupplyLcdEndpoint + "/quicksilver/supply/v1/topn/100")
+		if err != nil {
+			s.Logger.Error("unable to get top accounts", err)
+			return err
+		}
+
+		defer resp.Body.Close()
+
+		// Read all the response body
+		result, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalf("failed to read response body: %v", err)
+		}
+
+		s.Logger.Info("set cache for top accounts")
+		s.Cache.SetWithTTL(key, result, 1, 1*time.Hour)
+	}
+
+	if !pretty {
+		return ctx.Blob(http.StatusOK, "application/json", result)
+	}
+
+	var accountResponse AccountResponse
+	err := json.Unmarshal(result, &accountResponse)
+	if err != nil {
+		return err
+	}
+
+	htmlContent, err := generateHTML(accountResponse.Accounts)
+	if err != nil {
+		return err
+	}
+	return ctx.HTML(http.StatusOK, htmlContent)
+}
+
+type AccountResponse struct {
+	Accounts []TopAccount `json:"accounts"`
+}
+
+type TopAccount struct {
+	Address string      `json:"address"`
+	Balance sdkmath.Int `json:"balance"`
 }
 
 type Supply struct {
@@ -690,4 +754,137 @@ func (s *Service) queryOsmo() (OsmosisPoolCacheResult, error) {
 	time.Sleep(time.Millisecond * 200)
 
 	return poolResult, nil
+}
+
+// templateHTML is a simple HTML template with inline styling
+// to display the TopAccount data in a table.
+const templateHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top 100 Accounts</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Lato', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            text-align: center;
+            margin: 1rem;
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 1rem;
+            width: 200px; /* Adjust as needed */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-family: 'Lato', sans-serif;
+        }
+        p {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            font-family: 'Lato', sans-serif;
+        }
+        table {
+            width: 70%;
+            border-collapse: collapse;
+            margin: 2rem auto;
+            background-color: #222;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #666;
+            text-align: left;
+            font-family: 'Lato', sans-serif;
+        }
+        th {
+            background-color: #333;
+        }
+		.balance-col {
+            /* Monospaced font & right alignment for numeric values */
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        tr:nth-child(odd) {
+            background-color: #222;
+        }
+        tr:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img 
+            src="https://app.quicksilver.zone/img/quicksilverWord.png" 
+            alt="Quicksilver Logo" 
+            class="logo" 
+        />
+        <h1>Top 100 Accounts</h1>
+        <p>This table shows the top 100 accounts (including locked and delegated tokens) on the Quicksilver network, excluding module accounts.</p>
+    </header>
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{- range . }}
+            <tr>
+                <td>{{ .Address }}</td>
+                <td class="balance-col">{{ .Balance | FormatAmount }}</td>
+            </tr>
+        {{- end }}
+        </tbody>
+    </table>
+</body>
+</html>
+`
+
+// generateHTML takes a slice of TopAccount and generates HTML that displays a table.
+func generateHTML(topAccounts []TopAccount) (string, error) {
+	t, err := template.New("topaccounts").Funcs(templateFuncs).Parse(templateHTML)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, topAccounts); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+var templateFuncs = template.FuncMap{
+	"FormatAmount": func(balance sdkmath.Int) string {
+		// Convert to big.Rat so we can do decimal division by 1e6
+		rat := new(big.Rat).SetInt(balance.BigInt())
+
+		// Divide by 1e6
+		divisor := big.NewRat(1_000_000, 1)
+		rat = rat.Quo(rat, divisor)
+
+		// Convert to float64
+		floatVal, _ := rat.Float64()
+
+		// Insert commas, show 2 decimal places (adjust as needed)
+		formatted := humanize.CommafWithDigits(floatVal, 6)
+
+		// Append "QCK"
+		return fmt.Sprintf("%s QCK", formatted)
+	},
 }
