@@ -1,6 +1,7 @@
-lcd_endpoint: "https://lcd.quicksilver.zone"
-rpc_endpoint: "https://rpc.quicksilver.zone:443"
-chain_rpc_endpoint: "https://rpc.%s.quicksilver.zone:443"
+lcd_endpoint: "http://quicksilver-archive-svc.default.svc.cluster.local:1317"
+supply_lcd_endpoint: "http://quicksilver-archive-svc.default.svc.cluster.local:1317"
+rpc_endpoint: "http://quicksilver-archive-svc.default.svc.cluster.local:26657"
+chain_rpc_endpoint: "https://%s.rpc.quicksilver.zone:443"
 chains:
   - quicksilver
   - cosmoshub
@@ -14,10 +15,15 @@ chains:
   - saga
   - celestia
   - agoric
+  - xion
+  - archway
+  - omniflixhub
+
 apr_url: "https://chains.cosmos.directory"
 apr_cache_minutes: 15
 supply_cache_minutes: 180
 defi_apis:
+  osmo_assets: https://celatone-api-prod.alleslabs.dev/v1/osmosis/osmosis-1/assets?with_prices=true
   shade: https://na36v10ce3.execute-api.us-east-1.amazonaws.com/API-mainnet-STAGE/shadeswap/pairs
   osmosis: https://app.osmosis.zone/api/pools?page=1&limit=500&min_liquidity=500
   osmosis_apy: https://public-osmosis-api.numia.xyz/pools_apr
@@ -28,6 +34,11 @@ defi:
     action: Add Liquidity
     link: https://app.osmosis.zone/pool/944
     id: 944
+  - assetPair: qATOM/ATOM
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/1589
+    id: 1589
   - assetPair: qSTARS/STARS
     provider: osmosis
     action: Add Liquidity
@@ -43,6 +54,11 @@ defi:
     action: Add Liquidity
     link: https://app.osmosis.zone/pool/956
     id: 956
+  - assetPair: qOSMO/OSMO
+    provider: osmosis
+    action: Add Liquidity
+    link: https://app.osmosis.zone/pool/1590
+    id: 1590
   - assetPair: qSOMM/SOMM
     provider: osmosis
     action: Add Liquidity
@@ -57,13 +73,13 @@ defi:
     provider: shade
     action: Add Liquidity
     apy: 0.459
-    tvl: 100400
+    tvl: 2160
     link: https://app.shadeprotocol.io/swap/pools
     id: 17dddb72-5719-4328-a3a7-1c84b4f7a932
   - assetPair: qATOM/ATOM
     provider: shade
     action: Add Liquidity
     apy: 0.121
-    tvl: 75760
+    tvl: 3030
     link: https://app.shadeprotocol.io/swap/pools
     id: 44c1658d-8626-4bf9-835f-d13aefec4c09

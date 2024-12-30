@@ -83,7 +83,7 @@ func (s *Service) ConfigureRoutes() {
 
 		data, found := s.Cache.Get(key)
 		if !found {
-			return s.getTotalSupply(ctx, key)
+			return s.getSupply(ctx, key)
 		}
 		return ctx.JSONBlob(http.StatusOK, data.([]byte))
 	})
@@ -354,61 +354,16 @@ func (s *Service) getAPR(ctx echov4.Context, key string) error {
 	return ctx.JSONBlob(http.StatusOK, respdata)
 }
 
-func (s *Service) getTotalSupply(ctx echov4.Context, key string) error {
-	s.Echo.Logger.Infof("getTotalSupply")
+func (s *Service) getSupply(ctx echov4.Context, key string) error {
+	s.Echo.Logger.Infof("getSupply")
 
-	totalSupply, err := getTotalSupply(s.Config.LcdEndpoint + "/cosmos/bank/v1beta1/supply")
-	if err != nil {
-		s.Echo.Logger.Errorf("getTotalSupply: %v - %v", ErrUnableToGetTotalSupply, err)
-		return ErrUnableToGetTotalSupply
-	}
-	s.Echo.Logger.Info("totalSupply", " -> ", totalSupply)
-	respData, err := json.Marshal(float64(totalSupply.Int64()) / 1_000_000)
-	if err != nil {
-		s.Echo.Logger.Errorf("getTotalSupply: %v - %v", ErrMarshalResponse, err)
-		return ErrMarshalResponse
-	}
-	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Minute)
-
-	return ctx.JSONBlob(http.StatusOK, respData)
-}
-
-func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
-	s.Echo.Logger.Infof("getCirculatingSupply")
-
-	var CirculatingSupplyResponse int64
-
-	totalLockedTokens := sdkmath.ZeroInt()
-
-	for _, address := range VESTING_ACCOUNTS {
-		lockedTokensForAddress, err := getVestingAccountLocked(s.Config.LcdEndpoint+"/cosmos/auth/v1beta1/accounts/", address)
-		if err != nil {
-			s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetLockedTokens, err)
-			return ErrUnableToGetLockedTokens
-		}
-		totalLockedTokens = totalLockedTokens.Add(lockedTokensForAddress)
-		s.Echo.Logger.Info("lockedTokensFor", address, " -> ", lockedTokensForAddress)
-	}
-
-	totalSupply, err := getTotalSupply(s.Config.LcdEndpoint + "/cosmos/bank/v1beta1/supply")
+	supply, _, err := getSupply(s.Config.SupplyLcdEndpoint + "/quicksilver/supply/v1/supply")
 	if err != nil {
 		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetTotalSupply, err)
 		return ErrUnableToGetTotalSupply
 	}
-	s.Echo.Logger.Info("totalSupply", " -> ", totalSupply)
 
-	communityPoolBalance, err := getCommunityPool(s.Config.LcdEndpoint + "/cosmos/distribution/v1beta1/community_pool")
-	if err != nil {
-		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetCommunityPool, err)
-		return ErrUnableToGetCommunityPool
-	}
-
-	s.Echo.Logger.Info("communityPoolBalance", " -> ", communityPoolBalance)
-
-	totalCirculatingSupply := totalSupply.Sub(totalLockedTokens).Sub(communityPoolBalance).Sub(sdkmath.NewInt(500_000_000_000)) // unknown account
-	CirculatingSupplyResponse = totalCirculatingSupply.Int64()
-
-	respData, err := json.Marshal(float64(CirculatingSupplyResponse) / 1_000_000)
+	respData, err := json.Marshal(supply.Quo(sdkmath.NewInt(1_000_000)).Int64())
 	if err != nil {
 		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrMarshalResponse, err)
 		return ErrMarshalResponse
@@ -416,6 +371,50 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Minute)
 
 	return ctx.JSONBlob(http.StatusOK, respData)
+}
+func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
+	s.Echo.Logger.Infof("getCirculatingSupply")
+
+	_, circulatingSupply, err := getSupply(s.Config.SupplyLcdEndpoint + "/quicksilver/supply/v1/supply")
+	if err != nil {
+		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrUnableToGetTotalSupply, err)
+		return ErrUnableToGetTotalSupply
+	}
+
+	respData, err := json.Marshal(circulatingSupply.Quo(sdkmath.NewInt(1_000_000)).Int64())
+	if err != nil {
+		s.Echo.Logger.Errorf("getCirculatingSupply: %v - %v", ErrMarshalResponse, err)
+		return ErrMarshalResponse
+	}
+	s.Cache.SetWithTTL(key, respData, 1, time.Duration(s.Config.SupplyCacheTime)*time.Minute)
+
+	return ctx.JSONBlob(http.StatusOK, respData)
+}
+
+type Supply struct {
+	Supply            sdkmath.Int `json:"supply"`
+	CirculatingSupply sdkmath.Int `json:"circulating_supply"`
+}
+
+func getSupply(url string) (sdkmath.Int, sdkmath.Int, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return sdkmath.Int{}, sdkmath.Int{}, err
+	}
+
+	var result json.RawMessage
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return sdkmath.Int{}, sdkmath.Int{}, err
+	}
+
+	var supply Supply
+	err = json.Unmarshal(result, &supply)
+	if err != nil {
+		return sdkmath.Int{}, sdkmath.Int{}, err
+	}
+
+	return supply.Supply, supply.CirculatingSupply, nil
 
 }
 
@@ -671,6 +670,7 @@ func (s *Service) queryOsmo() (OsmosisPoolCacheResult, error) {
 	if err != nil {
 		return OsmosisPoolCacheResult{}, err
 	}
+	fmt.Printf("poolResult: %v\n", poolResult)
 
 	s.Logger.Info("querying osmosis apr api")
 
@@ -684,6 +684,7 @@ func (s *Service) queryOsmo() (OsmosisPoolCacheResult, error) {
 	if err != nil {
 		return OsmosisPoolCacheResult{}, err
 	}
+	fmt.Printf("poolResult.PoolAprs: %v\n", poolResult.PoolAprs)
 
 	s.Cache.SetWithTTL("defi.raw.osmosis", poolResult, 1, 3*time.Hour)
 	time.Sleep(time.Millisecond * 200)

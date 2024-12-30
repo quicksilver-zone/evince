@@ -51,15 +51,16 @@ type Service struct {
 }
 
 type Config struct {
-	RpcEndpoint     string     `yaml:"rpc_endpoint" json:"rpc_endpoint"`
-	LcdEndpoint     string     `yaml:"lcd_endpoint" json:"lcd_endpoint"`
-	ChainHost       string     `yaml:"chain_rpc_endpoint" json:"chain_rpc_endpoint"`
-	Chains          []string   `yaml:"chains" json:"chains"`
-	APRURL          string     `yaml:"apr_url" json:"apr_url"`
-	APRCacheTime    int        `yaml:"apr_cache_minutes" json:"apr_cache_minutes"`
-	SupplyCacheTime int        `yaml:"supply_cache_minutes" json:"supply_cache_minutes"`
-	DefiInfo        []DefiInfo `yaml:"defi" json:"defi"`
-	DefiApis        DefiApis   `yaml:"defi_apis" json:"defi_apis"`
+	RpcEndpoint       string     `yaml:"rpc_endpoint" json:"rpc_endpoint"`
+	LcdEndpoint       string     `yaml:"lcd_endpoint" json:"lcd_endpoint"`
+	SupplyLcdEndpoint string     `yaml:"supply_lcd_endpoint" json:"supply_lcd_endpoint"`
+	ChainHost         string     `yaml:"chain_rpc_endpoint" json:"chain_rpc_endpoint"`
+	Chains            []string   `yaml:"chains" json:"chains"`
+	APRURL            string     `yaml:"apr_url" json:"apr_url"`
+	APRCacheTime      int        `yaml:"apr_cache_minutes" json:"apr_cache_minutes"`
+	SupplyCacheTime   int        `yaml:"supply_cache_minutes" json:"supply_cache_minutes"`
+	DefiInfo          []DefiInfo `yaml:"defi" json:"defi"`
+	DefiApis          DefiApis   `yaml:"defi_apis" json:"defi_apis"`
 }
 
 type DefiInfo struct {
