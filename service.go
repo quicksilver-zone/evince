@@ -51,6 +51,7 @@ type Service struct {
 }
 
 type Config struct {
+	CMCSlugs          []string   `yaml:"cmc_slugs" json:"cmc_slugs"`
 	RpcEndpoint       string     `yaml:"rpc_endpoint" json:"rpc_endpoint"`
 	LcdEndpoint       string     `yaml:"lcd_endpoint" json:"lcd_endpoint"`
 	SupplyLcdEndpoint string     `yaml:"supply_lcd_endpoint" json:"supply_lcd_endpoint"`

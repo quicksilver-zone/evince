@@ -18,6 +18,25 @@ chains:
   - xion
   - archway
   - omniflixhub
+  - injective
+  
+cmc_slugs:
+- cosmos
+- quicksilver-zone
+- dydx-chain
+- osmosis
+- sommelier
+- regen-network
+- omniflix-network
+- celestia
+- saga
+- xion
+- picasso
+- juno
+- archway
+- stargaze
+- injective
+- agoric
 
 apr_url: "https://chains.cosmos.directory"
 apr_cache_minutes: 15

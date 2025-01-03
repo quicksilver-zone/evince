@@ -12,7 +12,9 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -109,6 +111,10 @@ func (s *Service) ConfigureRoutes() {
 
 	s.Echo.GET("/top100", func(ctx echov4.Context) error {
 		return s.getTopAccounts(ctx, true)
+	})
+
+	s.Echo.GET("/prices", func(ctx echov4.Context) error {
+		return s.getPrices(ctx)
 	})
 
 	s.Echo.GET("/defi", func(ctx echov4.Context) error {
@@ -404,6 +410,82 @@ func (s *Service) getCirculatingSupply(ctx echov4.Context, key string) error {
 	return ctx.JSONBlob(http.StatusOK, respData)
 }
 
+func (s *Service) getPrices(ctx echov4.Context) error {
+	s.Echo.Logger.Infof("getPrices")
+	key := "prices"
+	data, found := s.Cache.Get(key)
+	if found {
+		return ctx.JSONBlob(http.StatusOK, data.([]byte))
+	} else {
+		// Create a new GET request
+		req, err := http.NewRequest("GET", "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?slug="+strings.Join(s.Config.CMCSlugs, ","), nil)
+		if err != nil {
+			log.Fatalf("Failed to create request: %v", err)
+		}
+
+		// Set headers
+		req.Header.Add("X-CMC_PRO_API_KEY", os.Getenv("CMC_KEY"))
+
+		// Use a client to send the request
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatalf("Failed to send request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Read all the response body
+		result, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalf("failed to read response body: %v", err)
+		}
+
+		var cmcResponse CMCResponse
+		err = json.Unmarshal(result, &cmcResponse)
+		if err != nil {
+			log.Fatalf("failed to unmarshal response: %v", err)
+		}
+
+		priceOutput := PriceOutput{}
+		for _, data := range cmcResponse.Data {
+			priceOutput[data.Symbol] = data.Quote["USD"].Price
+		}
+
+		respData, err := json.Marshal(priceOutput)
+		if err != nil {
+			log.Fatalf("failed to marshal response: %v", err)
+		}
+
+		s.Cache.SetWithTTL(key, respData, 1, 5*time.Minute)
+
+		return ctx.JSONBlob(http.StatusOK, respData)
+	}
+
+}
+
+type PriceOutput map[string]float64
+
+type CMCStatus struct {
+	ErrorCode    int    `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
+	Elapsed      int    `json:"elapsed"`
+	CreditCount  int    `json:"credit_count"`
+}
+
+type CMCResponse struct {
+	Status CMCStatus          `json:"status"`
+	Data   map[string]CMCData `json:"data"`
+}
+
+type CMCData struct {
+	Symbol string              `json:"symbol"`
+	Quote  map[string]CMCQuote `json:"quote"`
+}
+
+type CMCQuote struct {
+	Price float64 `json:"price"`
+}
+
 func (s *Service) getTopAccounts(ctx echov4.Context, pretty bool) error {
 	key := "top100"
 	var result []byte
@@ -485,6 +567,7 @@ func getSupply(url string) (sdkmath.Int, sdkmath.Int, error) {
 func (s *Service) getLogo(ctx echov4.Context, key string, chain string, address string, height int, width int) ([]byte, error) {
 	resp, err := http.Get(fmt.Sprintf("https://raw.githubusercontent.com/cosmostation/chainlist/main/chain/%s/moniker/%s.png", chain, address))
 	if err != nil {
+		// fetch from keybase
 		return s.placeHolder(key, height, width), nil
 	}
 
